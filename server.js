@@ -12,15 +12,15 @@ app.use(cors());
 app.use(express.json());
 app.use(express.text({ type: '*/*' }));
 
-// স্পেশাল ক্যারেক্টারের ঝামেলা এড়াতে ডিরেক্ট অবজেক্ট কনফিগারেশন (১০০% সেফ)
+// Render ক্লাউডের IPv4 সাপোর্টের জন্য Supabase IPv4 Pooler কনফিগারেশন
 const pool = new Pool({
   user: 'postgres',
-  host: 'db.rnegqehfttlapxowizlp.supabase.co',
+  host: 'aws-0-ap-northeast-1.pooler.supabase.com', // IPv4 সমর্থিত পুলার হোস্ট
   database: 'postgres',
-  password: 'James@#2026', // কোনো এনকোড ছাড়া আপনার আসল পাসওয়ার্ড
-  port: 5432,
+  password: 'James@#2026', 
+  port: 6543, // Supabase পুলারের জন্য পোর্ট অবশ্যই ৬৫৪৩ হবে
   ssl: { rejectUnauthorized: false },
-  connectionTimeoutMillis: 5000 // ৫ সেকেন্ডের বেশি আটকে থাকলে কানেকশন ড্রপ করবে (টাইমআউট জ্যাম হবে না)
+  connectionTimeoutMillis: 5000 
 });
 
 const server = new Server({
@@ -67,7 +67,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         isError: true
       };
     } finally {
-      if (client) client.release(); // কানেকশন জ্যাম হওয়া আটকাতে রিলিজ আবশ্যক
+      if (client) client.release(); 
     }
   }
   throw new Error("Tool not found");
