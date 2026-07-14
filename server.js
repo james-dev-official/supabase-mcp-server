@@ -7,15 +7,15 @@ const { CallToolRequestSchema, ListToolsRequestSchema } = require('@modelcontext
 
 const app = express();
 app.use(cors());
+
+// n8n এবং Render এর জন্য রিকোয়েস্ট বডি পার্সিং ১০০% সেফ করার মেকানিজম
+app.use(express.json());
 app.use(express.text({ type: '*/*' }));
 
-// Supabase Connection Setup
 const pool = new Pool({
   connectionString: process.env.SUPABASE_DB_URL,
-  ssl: { rejectUnauthorized: false } // Supabase Cloud এর জন্য SSL আবশ্যক
+  ssl: { rejectUnauthorized: false }
 });
-
-console.log('Live Supabase MCP Server Initializing...');
 
 const server = new Server({
   name: "supabase-mcp-server",
@@ -24,7 +24,6 @@ const server = new Server({
   capabilities: { tools: {} }
 });
 
-// Register Tool
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
@@ -43,12 +42,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   };
 });
 
-// Execute Tool
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   if (request.params.name === "query_database") {
     try {
       const sqlQuery = request.params.arguments.sql;
-      console.log(`Executing query on Supabase: ${sqlQuery}`);
       const result = await pool.query(sqlQuery);
       return { content: [{ type: "text", text: JSON.stringify(result.rows) }] };
     } catch (error) {
@@ -60,18 +57,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 let transport = null;
 
-// HTTP SSE Endpoints
 app.get('/mcp', async (req, res) => {
   transport = new SSEServerTransport('/mcp', res);
   await server.connect(transport);
 });
 
 app.post('/mcp', async (req, res) => {
-  if (transport) {
-    const message = JSON.parse(req.body);
-    await transport.handleMessage(message, res);
-  } else {
-    res.sendStatus(400);
+  try {
+    if (transport) {
+      // বডি যদি অলরেডি অবজেক্ট হয় তবে সরাসরি পাস করবে, স্ট্রিং হলে পার্স করবে
+      const message = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      await transport.handleMessage(message, res);
+    } else {
+      // যদি প্রথমবার গেট রিকোয়েস্ট মিস হয়ে সরাসরি পোস্ট আসে, তবুও যেন সার্ভার ক্র্যাশ না করে
+      transport = new SSEServerTransport('/mcp', res);
+      await server.connect(transport);
+      const message = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      await transport.handleMessage(message, res);
+    }
+  } catch (err) {
+    res.status(500).send(err.message);
   }
 });
 
