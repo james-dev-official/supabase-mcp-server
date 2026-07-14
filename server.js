@@ -3,7 +3,7 @@ import cors from 'cors';
 import pkg from 'pg';
 const { Pool } = pkg;
 
-// অফিশিয়াল ESM ইমপোর্ট পাথ উইথ এক্সটেনশন (.js)
+// অফিশিয়াল ও সেফেস্ট ESM ইমপোর্ট পাথ
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
