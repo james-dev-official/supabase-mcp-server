@@ -1,10 +1,12 @@
-const express = require('express');
-const cors = require('cors');
-const { Pool } = require('pg');
-// পাথ দুটি ইউনিভার্সাল ও সেফ করা হলো
-const { Server } = require('@modelcontextprotocol/sdk/server/index');
-const { SSEServerTransport } = require('@modelcontextprotocol/sdk/server/sse');
-const { CallToolRequestSchema, ListToolsRequestSchema } = require('@modelcontextprotocol/sdk/types');
+import express from 'express';
+import cors from 'cors';
+import pkg from 'pg';
+const { Pool } = pkg;
+
+// অফিশিয়াল ESM ইমপোর্ট পাথ উইথ এক্সটেনশন (.js)
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
 const app = express();
 app.use(cors());
