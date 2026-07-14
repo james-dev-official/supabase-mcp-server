@@ -3,17 +3,16 @@ import cors from 'cors';
 import pkg from 'pg';
 const { Pool } = pkg;
 
-// অফিশিয়াল ও সেফেস্ট ESM ইমপোর্ট পাথ
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
 const app = express();
 app.use(cors());
-
 app.use(express.json());
 app.use(express.text({ type: '*/*' }));
 
+// .env ফাইল থেকে বা লোকাল এনভায়রনমেন্ট থেকে রিড করবে
 const pool = new Pool({
   connectionString: process.env.SUPABASE_DB_URL,
   ssl: { rejectUnauthorized: false }
@@ -80,5 +79,5 @@ app.post('/mcp', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`Live Supabase MCP Server running on port ${PORT}`));
+const PORT = 8080;
+app.listen(PORT, () => console.log(`Local Supabase MCP Server running on port ${PORT}`));
