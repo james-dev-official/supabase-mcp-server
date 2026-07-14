@@ -3,16 +3,18 @@ import cors from 'cors';
 import pkg from 'pg';
 const { Pool } = pkg;
 
+// n8n এবং Render ক্লাউডের জন্য অফিশিয়াল ও ১০০% সেফ ইমপোর্ট পাথ
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
 const app = express();
 app.use(cors());
+
 app.use(express.json());
 app.use(express.text({ type: '*/*' }));
 
-// .env ফাইল থেকে বা লোকাল এনভায়রনমেন্ট থেকে রিড করবে
+// Supabase কানেকশন
 const pool = new Pool({
   connectionString: process.env.SUPABASE_DB_URL,
   ssl: { rejectUnauthorized: false }
@@ -25,6 +27,7 @@ const server = new Server({
   capabilities: { tools: {} }
 });
 
+// ১. টুল রেজিস্টার (n8n এর জন্য)
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
@@ -43,14 +46,32 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   };
 });
 
+// ২. টুল এক্সিকিউট (n8n এর জন্য রেসপন্স ফরম্যাট ফিক্সড)
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   if (request.params.name === "query_database") {
     try {
       const sqlQuery = request.params.arguments.sql;
       const result = await pool.query(sqlQuery);
-      return { content: [{ type: "text", text: JSON.stringify(result.rows) }] };
+      
+      // n8n MCP স্ট্যান্ডার্ড অনুযায়ী সঠিক ফরম্যাটে রেসপন্স পাঠানো
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(result.rows)
+          }
+        ]
+      };
     } catch (error) {
-      return { content: [{ type: "text", text: `Supabase Error: ${error.message}` }], isError: true };
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Supabase Error: ${error.message}`
+          }
+        ],
+        isError: true
+      };
     }
   }
   throw new Error("Tool not found");
@@ -58,6 +79,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 let transport = null;
 
+// HTTP SSE Endpoints
 app.get('/mcp', async (req, res) => {
   transport = new SSEServerTransport('/mcp', res);
   await server.connect(transport);
@@ -79,5 +101,5 @@ app.post('/mcp', async (req, res) => {
   }
 });
 
-const PORT = 8080;
-app.listen(PORT, () => console.log(`Local Supabase MCP Server running on port ${PORT}`));
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => console.log(`Live Supabase MCP Server running on port ${PORT}`));
