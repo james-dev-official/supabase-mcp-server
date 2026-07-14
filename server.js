@@ -1,14 +1,14 @@
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
-const { Server } = require('@modelcontextprotocol/sdk/server/index.js');
-const { SSEServerTransport } = require('@modelcontextprotocol/sdk/server/sse.js');
-const { CallToolRequestSchema, ListToolsRequestSchema } = require('@modelcontextprotocol/sdk/types.js');
+// পাথ দুটি ইউনিভার্সাল ও সেফ করা হলো
+const { Server } = require('@modelcontextprotocol/sdk/server/index');
+const { SSEServerTransport } = require('@modelcontextprotocol/sdk/server/sse');
+const { CallToolRequestSchema, ListToolsRequestSchema } = require('@modelcontextprotocol/sdk/types');
 
 const app = express();
 app.use(cors());
 
-// n8n এবং Render এর জন্য রিকোয়েস্ট বডি পার্সিং ১০০% সেফ করার মেকানিজম
 app.use(express.json());
 app.use(express.text({ type: '*/*' }));
 
@@ -65,11 +65,9 @@ app.get('/mcp', async (req, res) => {
 app.post('/mcp', async (req, res) => {
   try {
     if (transport) {
-      // বডি যদি অলরেডি অবজেক্ট হয় তবে সরাসরি পাস করবে, স্ট্রিং হলে পার্স করবে
       const message = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
       await transport.handleMessage(message, res);
     } else {
-      // যদি প্রথমবার গেট রিকোয়েস্ট মিস হয়ে সরাসরি পোস্ট আসে, তবুও যেন সার্ভার ক্র্যাশ না করে
       transport = new SSEServerTransport('/mcp', res);
       await server.connect(transport);
       const message = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
